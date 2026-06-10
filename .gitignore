@@ -1,3 +1,7 @@
+# Secrets
+service-account.json
+firebase_config.json
+
 # Miscellaneous
 *.class
 *.log
