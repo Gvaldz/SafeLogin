@@ -1,0 +1,28 @@
+{
+  "project_info": {
+    "project_number": "FIREBASE_SENDER_ID",
+    "project_id": "FIREBASE_PROJECT_ID",
+    "storage_bucket": "FIREBASE_PROJECT_ID.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "FIREBASE_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.gloria.safelogin"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "FIREBASE_ANDROID_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

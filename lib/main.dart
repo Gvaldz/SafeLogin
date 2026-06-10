@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'remote_delete_fcm_service.dart';
+import 'sensitive_data_store.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SecureWindow.setEnabled(true);
+  await RemoteDeleteFcmService.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -51,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool accesoBloqueado = false;
   bool cargando = true;
+  bool autenticando = false;
   String mensajeBloqueo = 'Acceso bloqueado por ubicacion falsa';
 
   @override
@@ -104,11 +109,38 @@ class _LoginScreenState extends State<LoginScreen> {
     return Permission.locationWhenInUse.request();
   }
 
-  void _iniciarSesion() {
+  Future<void> _iniciarSesion() async {
+    if (autenticando) {
+      return;
+    }
+
     final String usuario = _usuarioController.text.trim();
     final String contrasena = _contrasenaController.text;
 
     if (usuario == usuarioSistema && contrasena == contrasenaSistema) {
+      setState(() {
+        autenticando = true;
+      });
+
+      try {
+        await SensitiveDataStore.instance.seedForUser(usuarioSistema);
+        await RemoteDeleteFcmService.instance.bindCurrentUser(usuarioSistema);
+      } catch (error) {
+        debugPrint('Error al preparar almacenamiento seguro: $error');
+
+        if (!mounted) return;
+        setState(() {
+          autenticando = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo preparar el almacenamiento seguro'),
+          ),
+        );
+        return;
+      }
+
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => const HomeScreen(usuario: usuarioSistema),
@@ -204,8 +236,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 30),
               ElevatedButton(
-                onPressed: _iniciarSesion,
-                child: const Text('Ingresar'),
+                onPressed: autenticando ? null : _iniciarSesion,
+                child: autenticando
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Ingresar'),
               ),
             ],
           ),
@@ -216,24 +253,45 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.usuario});
+  const HomeScreen({
+    super.key,
+    required this.usuario,
+    this.storage,
+    this.remoteDeleteService,
+  });
 
   final String usuario;
+  final SensitiveDataRepository? storage;
+  final RemoteDeleteFcmService? remoteDeleteService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const Duration tiempoInactividad = Duration(seconds: 10);
 
   Timer? _temporizadorInactividad;
+  late final SensitiveDataRepository _storage;
+  late final RemoteDeleteFcmService _remoteDeleteService;
+  SensitiveDataSnapshot? _sensitiveData;
+  String? _fcmToken;
+  String? _lastRemoteDeleteAt;
+  bool _cargandoDatosSensibles = true;
   int _contador = 0;
 
   @override
   void initState() {
     super.initState();
+    _storage = widget.storage ?? SensitiveDataStore.instance;
+    _remoteDeleteService =
+        widget.remoteDeleteService ?? RemoteDeleteFcmService.instance;
+    WidgetsBinding.instance.addObserver(this);
+    _remoteDeleteService.lastRemoteDelete.addListener(
+      _actualizarDatosSensibles,
+    );
     _reiniciarTemporizador();
+    _cargarDatosSensibles();
   }
 
   void _reiniciarTemporizador() {
@@ -250,6 +308,56 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _contador++;
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _cargarDatosSensibles();
+    }
+  }
+
+  Future<void> _cargarDatosSensibles() async {
+    final SensitiveDataSnapshot sensitiveData = await _storage
+        .readSensitiveData();
+    final String? fcmToken = await _storage.readFcmToken();
+    final String? lastRemoteDeleteAt = await _storage.readLastRemoteDeleteAt();
+
+    if (!mounted) return;
+    setState(() {
+      _sensitiveData = sensitiveData;
+      _fcmToken = fcmToken;
+      _lastRemoteDeleteAt = lastRemoteDeleteAt;
+      _cargandoDatosSensibles = false;
+    });
+  }
+
+  void _actualizarDatosSensibles() {
+    _cargarDatosSensibles();
+
+    final RemoteDeleteResult? result =
+        _remoteDeleteService.lastRemoteDelete.value;
+
+    if (result != null && result.applied && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Datos sensibles eliminados remotamente')),
+      );
+    }
+  }
+
+  Future<void> _copiarFcmToken() async {
+    final String? token = _fcmToken;
+
+    if (token == null || token.isEmpty) {
+      return;
+    }
+
+    await Clipboard.setData(ClipboardData(text: token));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Token FCM copiado')));
   }
 
   void _cerrarSesion() {
@@ -269,6 +377,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _remoteDeleteService.lastRemoteDelete.removeListener(
+      _actualizarDatosSensibles,
+    );
     _temporizadorInactividad?.cancel();
     super.dispose();
   }
@@ -291,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         body: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -313,10 +425,131 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.touch_app),
                   label: const Text('Pulsar boton'),
                 ),
+                const SizedBox(height: 28),
+                _buildSensitiveDataPanel(context),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSensitiveDataPanel(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 520),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: _cargandoDatosSensibles
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.security, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Almacenamiento seguro',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                for (final SensitiveFieldDefinition field
+                    in SensitiveDataStore.sensitiveFields)
+                  _SensitiveFieldRow(
+                    label: field.label,
+                    value: _maskedValue(_sensitiveData?.valueFor(field.key)),
+                  ),
+                const Divider(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _fcmToken == null || _fcmToken!.isEmpty
+                            ? 'FCM pendiente de configuracion'
+                            : 'FCM ${_tokenPreview(_fcmToken!)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Copiar token FCM',
+                      onPressed: _fcmToken == null || _fcmToken!.isEmpty
+                          ? null
+                          : _copiarFcmToken,
+                      icon: const Icon(Icons.copy),
+                    ),
+                  ],
+                ),
+                if (_lastRemoteDeleteAt != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ultimo borrado remoto: $_lastRemoteDeleteAt',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+    );
+  }
+
+  String _maskedValue(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Eliminado';
+    }
+
+    final String suffix = value.length <= 4
+        ? value
+        : value.substring(value.length - 4);
+
+    return 'Guardado ****$suffix';
+  }
+
+  String _tokenPreview(String token) {
+    if (token.length <= 24) {
+      return token;
+    }
+
+    return '${token.substring(0, 12)}...${token.substring(token.length - 8)}';
+  }
+}
+
+class _SensitiveFieldRow extends StatelessWidget {
+  const _SensitiveFieldRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool deleted = value == 'Eliminado';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            deleted ? Icons.delete_outline : Icons.check_circle_outline,
+            color: deleted ? Colors.red : Colors.green,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(label)),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }
