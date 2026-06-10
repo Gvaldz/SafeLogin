@@ -269,7 +269,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  static const Duration tiempoInactividad = Duration(seconds: 10);
+  static const Duration tiempoInactividad = Duration(seconds: 120);
 
   Timer? _temporizadorInactividad;
   late final SensitiveDataRepository _storage;

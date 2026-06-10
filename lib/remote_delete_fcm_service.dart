@@ -163,11 +163,16 @@ class RemoteDeleteFcmService {
     RemoteMessage message, {
     required String source,
   }) async {
+    debugPrint('[FCM] Mensaje recibido desde: $source');
+    debugPrint('[FCM] Data: ${message.data}');
+
     final RemoteDeleteResult? result = await handleRemoteMessage(
       message,
       store: _store,
       source: source,
     );
+
+    debugPrint('[FCM] Resultado: applied=${result?.applied}, msg=${result?.message}');
 
     if (result != null && result.applied) {
       lastRemoteDelete.value = result;
