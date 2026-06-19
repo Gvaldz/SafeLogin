@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'auth_service.dart';
+import 'profile_screen.dart';
 import 'remote_delete_fcm_service.dart';
 import 'sensitive_data_store.dart';
 
@@ -47,9 +49,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const String usuarioSistema = 'admin';
-  static const String contrasenaSistema = '1234';
-
   final TextEditingController _usuarioController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
 
@@ -114,43 +113,46 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final String usuario = _usuarioController.text.trim();
-    final String contrasena = _contrasenaController.text;
+    setState(() => autenticando = true);
 
-    if (usuario == usuarioSistema && contrasena == contrasenaSistema) {
-      setState(() {
-        autenticando = true;
-      });
+    final AuthResult resultado = await AuthService.instance.login(
+      _usuarioController.text,
+      _contrasenaController.text,
+    );
 
-      try {
-        await SensitiveDataStore.instance.seedForUser(usuarioSistema);
-        await RemoteDeleteFcmService.instance.bindCurrentUser(usuarioSistema);
-      } catch (error) {
-        debugPrint('Error al preparar almacenamiento seguro: $error');
+    if (!mounted) return;
 
-        if (!mounted) return;
-        setState(() {
-          autenticando = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se pudo preparar el almacenamiento seguro'),
-          ),
-        );
-        return;
-      }
+    if (!resultado.success) {
+      setState(() => autenticando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(resultado.errorMessage ?? 'Error de autenticacion')),
+      );
+      return;
+    }
+
+    final String userId = resultado.userId!;
+
+    try {
+      await SensitiveDataStore.instance.seedForUser(userId);
+      await RemoteDeleteFcmService.instance.bindCurrentUser(userId);
+    } catch (error) {
+      debugPrint('Error al preparar almacenamiento seguro: $error');
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => const HomeScreen(usuario: usuarioSistema),
+      setState(() => autenticando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo preparar el almacenamiento seguro'),
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Usuario o contrasena incorrectos')),
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => HomeScreen(usuario: userId),
+      ),
     );
   }
 
@@ -364,6 +366,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!mounted) return;
 
     _temporizadorInactividad?.cancel();
+    AuthService.instance.logout();
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
 
     Navigator.of(context).pushReplacement(
@@ -395,6 +398,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         appBar: AppBar(
           title: const Text('Pantalla principal'),
           actions: [
+            IconButton(
+              tooltip: 'Ver perfil',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ProfileScreen(usuario: widget.usuario),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person),
+            ),
             IconButton(
               tooltip: 'Cerrar sesion',
               onPressed: _cerrarSesion,

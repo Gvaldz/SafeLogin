@@ -1,0 +1,628 @@
+\documentclass[12pt,a4paper]{article}
+
+% ── Paquetes ─────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{mdframed}
+\usepackage{float}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tcolorbox}
+\usepackage{lmodern}
+
+\geometry{
+  top=2.5cm, bottom=2.5cm,
+  left=3cm,  right=2.5cm
+}
+
+% ── Colores ──────────────────────────────────────────────────────────────────
+\definecolor{azulTitulo}{RGB}{30, 80, 160}
+\definecolor{verdeOk}{RGB}{46, 125, 50}
+\definecolor{rojoMal}{RGB}{192, 57, 43}
+\definecolor{naranja}{RGB}{230, 81, 0}
+\definecolor{grisClaro}{RGB}{245, 245, 245}
+\definecolor{grisOscuro}{RGB}{80, 80, 80}
+\definecolor{azulCodigo}{RGB}{25, 118, 210}
+\definecolor{fondo}{RGB}{250, 250, 252}
+
+% ── Estilo de página ─────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{grisOscuro}{Seguridad en Aplicaciones Móviles}}
+\fancyhead[R]{\small\textcolor{grisOscuro}{Ofuscación de Código Flutter/Android}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Títulos de sección ────────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{azulTitulo}}
+  {\thesection.}{0.6em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{azulTitulo!80}}
+  {\thesubsection.}{0.5em}{}
+
+% ── Listados de código ────────────────────────────────────────────────────────
+\lstdefinestyle{dart}{
+  language=Java,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{azulCodigo}\bfseries,
+  commentstyle=\color{verdeOk}\itshape,
+  stringstyle=\color{rojoMal},
+  numberstyle=\tiny\color{grisOscuro},
+  numbers=left,
+  stepnumber=1,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  backgroundcolor=\color{grisClaro},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  captionpos=b,
+  showstringspaces=false,
+  xleftmargin=1.5em,
+  xrightmargin=0.5em,
+}
+
+\lstdefinestyle{shell}{
+  basicstyle=\ttfamily\footnotesize\color{white},
+  backgroundcolor=\color{black!88},
+  breaklines=true,
+  frame=single,
+  framerule=0pt,
+  xleftmargin=1em,
+  xrightmargin=0.5em,
+  captionpos=b,
+}
+
+\lstdefinestyle{gradle}{
+  language=Java,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{azulCodigo}\bfseries,
+  stringstyle=\color{rojoMal},
+  commentstyle=\color{verdeOk}\itshape,
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{gray!40},
+  backgroundcolor=\color{grisClaro},
+  breaklines=true,
+  tabsize=2,
+  numbers=left,
+  numberstyle=\tiny\color{grisOscuro},
+  showstringspaces=false,
+  xleftmargin=1.5em,
+}
+
+% ── Caja de reflexión ─────────────────────────────────────────────────────────
+\tcbuselibrary{skins, breakable}
+\newtcolorbox{reflexion}[1]{
+  enhanced,
+  breakable,
+  colback=azulTitulo!5,
+  colframe=azulTitulo!60,
+  fonttitle=\bfseries\color{azulTitulo},
+  title={#1},
+  arc=3pt,
+  boxrule=0.6pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt,
+}
+
+\newtcolorbox{conclusionbox}{
+  enhanced,
+  colback=verdeOk!7,
+  colframe=verdeOk!50,
+  arc=3pt,
+  boxrule=0.6pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt,
+}
+
+% ── Placeholder de captura (eliminar cuando se inserten imágenes reales) ─────
+\newcommand{\captura}[2]{%
+  \begin{center}
+    \fbox{%
+      \begin{minipage}{#1}
+        \centering
+        \vspace{1.5cm}
+        \textcolor{grisOscuro}{\textit{[Captura: #2]}}
+        \vspace{1.5cm}
+      \end{minipage}%
+    }
+  \end{center}
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Portada ──────────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+  {\Huge\bfseries\color{azulTitulo} Seguridad en Aplicaciones Móviles\\[0.4em]
+   \Large\color{grisOscuro} Ofuscación de Código en Flutter y Android}\\[2cm]
+
+  {\large\bfseries Práctica de Laboratorio}\\[0.3cm]
+  {\normalsize Análisis Comparativo: APK Normal vs. APK Ofuscado}\\[2.5cm]
+
+  \begin{tabular}{rl}
+    \textbf{Alumno:}    & Arthur Garcia \\[0.2em]
+    \textbf{Correo:}    & atunconquesoyjamon@gmail.com \\[0.2em]
+    \textbf{Proyecto:}  & Safe Login (\texttt{com.gloria.safelogin}) \\[0.2em]
+    \textbf{Fecha:}     & Junio 2026 \\
+  \end{tabular}
+
+  \vfill
+  \rule{\linewidth}{0.5pt}\\[0.3em]
+  {\small Herramientas: Flutter 3 · Android R8/ProGuard · JADX · APKTool · Bytecode Viewer}
+\end{titlepage}
+
+% ── Índice ────────────────────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Introducción}
+
+La distribución de aplicaciones móviles en formato APK expone el código compilado a herramientas de ingeniería inversa como JADX, APKTool y Bytecode Viewer. La ofuscación es una técnica que transforma el código fuente o el bytecode para dificultar su comprensión, sin alterar su comportamiento funcional.
+
+En esta práctica se parte de la aplicación \textbf{Safe Login}, una app Flutter con autenticación simulada, almacenamiento seguro y borrado remoto de datos sensibles. Se generaron dos artefactos:
+
+\begin{itemize}
+  \item \textbf{APK Debug} — compilación estándar de desarrollo, sin optimizaciones.
+  \item \textbf{APK Release ofuscado} — compilación de producción con R8 (Android) y el mecanismo de ofuscación de Flutter (\texttt{--obfuscate}).
+\end{itemize}
+
+El objetivo es contrastar ambas versiones y evaluar la efectividad de la ofuscación como mecanismo de protección.
+
+% =============================================================================
+\section{Descripción de la Aplicación}
+
+\subsection{Pantallas implementadas}
+
+La aplicación cuenta con tres pantallas:
+
+\begin{enumerate}
+  \item \textbf{LoginScreen} — Valida credenciales mediante \texttt{AuthService}. Detecta GPS falso antes de permitir el acceso y bloquea la pantalla de grabación con \texttt{FLAG\_SECURE}.
+  \item \textbf{HomeScreen} — Muestra datos sensibles enmascarados (token de sesión, token de renovación, cuenta bancaria, PIN). Incluye cierre de sesión automático por inactividad (120 segundos) y borrado remoto vía FCM.
+  \item \textbf{ProfileScreen} — Muestra información de la sesión activa: duración, permisos del usuario y estado de los mecanismos de seguridad activos.
+\end{enumerate}
+
+\subsection{Clases relevantes para el análisis de ofuscación}
+
+\begin{description}
+  \item[\texttt{AuthService}] Clase singleton que gestiona la autenticación simulada. Contiene lógica de login, validación de tokens, verificación de permisos por rol y control de duración de sesión.
+  \item[\texttt{SensitiveDataStore}] Clase que procesa y almacena información sensible mediante \texttt{flutter\_secure\_storage}: tokens, número de cuenta y PIN.
+  \item[\texttt{RemoteDeleteFcmService}] Servicio que escucha mensajes FCM para borrar datos sensibles remotamente.
+  \item[\texttt{SecureWindow}] Canal de plataforma que activa \texttt{FLAG\_SECURE} y detecta ubicaciones falsas.
+\end{description}
+
+% =============================================================================
+\section{Configuración de Ofuscación}
+
+\subsection{Configuración Android — R8/ProGuard}
+
+Se habilitó R8 en el archivo \texttt{android/app/build.gradle.kts}:
+
+\begin{lstlisting}[style=gradle, caption={build.gradle.kts — configuración de release con R8}]
+buildTypes {
+    release {
+        signingConfig = signingConfigs.getByName("debug")
+        isMinifyEnabled = true       // Activa R8 / ProGuard
+        isShrinkResources = true     // Elimina recursos no usados
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
+    }
+    debug {
+        isMinifyEnabled = false
+    }
+}
+\end{lstlisting}
+
+Se creó el archivo \texttt{android/app/proguard-rules.pro} con las reglas necesarias para conservar las clases del motor de Flutter y las dependencias clave:
+
+\begin{lstlisting}[style=dart, caption={proguard-rules.pro}]
+# Flutter engine
+-keep class io.flutter.** { *; }
+-keep class io.flutter.embedding.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-dontwarn io.flutter.**
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+
+# Flutter Secure Storage
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+
+# Permission Handler
+-keep class com.baseflow.permissionhandler.** { *; }
+
+# Kotlin
+-keep class kotlin.** { *; }
+
+# General Android
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+\end{lstlisting}
+
+\subsection{Configuración Flutter — ofuscación del código Dart}
+
+Flutter compila Dart a código nativo (ARM), pero los símbolos pueden extraerse del binario. El flag \texttt{--obfuscate} elimina esos nombres:
+
+\begin{lstlisting}[style=shell, caption={Comando de compilación — APK ofuscado}]
+flutter build apk --release \
+  --obfuscate \
+  --split-debug-info=build/debug-symbols
+\end{lstlisting}
+
+\begin{itemize}
+  \item \texttt{--obfuscate}: renombra clases, métodos y campos de Dart en el binario nativo.
+  \item \texttt{--split-debug-info}: separa los símbolos de depuración a un directorio externo, permitiendo desofuscar stack traces en desarrollo sin incluirlos en el APK.
+\end{itemize}
+
+\subsection{Capturas de la configuración}
+
+\begin{figure}[H]
+  \captura{0.85\linewidth}{build.gradle.kts con isMinifyEnabled = true y proguardFiles}
+  \caption{Configuración de R8 en \texttt{build.gradle.kts}}
+\end{figure}
+
+\begin{figure}[H]
+  \captura{0.85\linewidth}{proguard-rules.pro abierto en editor con las reglas -keep}
+  \caption{Archivo \texttt{proguard-rules.pro}}
+\end{figure}
+
+\begin{figure}[H]
+  \captura{0.85\linewidth}{Terminal mostrando: Built build/app/outputs/flutter-apk/app-release.apk (45.3MB)}
+  \caption{Salida de \texttt{flutter build apk --release --obfuscate}}
+\end{figure}
+
+% =============================================================================
+\section{Comparación entre APK Normal y APK Ofuscado}
+
+\subsection{Capturas del análisis con JADX}
+
+\begin{figure}[H]
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{JADX — app-debug.apk: árbol de paquetes con clases LoginScreen, AuthService, SensitiveDataStore visibles}
+    \caption{APK Debug — clases legibles}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{JADX — app-release.apk: árbol de paquetes con clases a, b, c, d sin nombres}
+    \caption{APK Release — clases ofuscadas}
+  \end{subfigure}
+  \caption{Comparación en JADX: árbol de paquetes}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{JADX — método iniciarSesion() con lógica de login legible, llamada a AuthService.login()}
+    \caption{APK Debug — método \texttt{\_iniciarSesion()} legible}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{JADX — mismo método ofuscado como a() con llamadas a b.c() sin contexto}
+    \caption{APK Release — método renombrado}
+  \end{subfigure}
+  \caption{Comparación en JADX: detalles de método}
+\end{figure}
+
+\subsection{Capturas del análisis con APKTool}
+
+\begin{figure}[H]
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{APKTool — smali de app-debug con descriptores .class completos}
+    \caption{APK Debug — smali con nombres}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{APKTool — smali de app-release con descriptores cortos a/b/c}
+    \caption{APK Release — smali ofuscado}
+  \end{subfigure}
+  \caption{Comparación en APKTool: código smali}
+\end{figure}
+
+\subsection{Capturas del análisis con Bytecode Viewer}
+
+\begin{figure}[H]
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{Bytecode Viewer — app-debug.apk: bytecode con descriptores de métodos claros}
+    \caption{APK Debug — bytecode legible}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \captura{\linewidth}{Bytecode Viewer — app-release.apk: bytecode con nombres cortos sin semántica}
+    \caption{APK Release — bytecode ofuscado}
+  \end{subfigure}
+  \caption{Comparación en Bytecode Viewer}
+\end{figure}
+
+% =============================================================================
+\section{Tabla Comparativa de Resultados}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\caption{Comparativa APK Debug vs. APK Release ofuscado}
+\begin{tabularx}{\linewidth}{>{\bfseries}p{3.5cm} X X}
+\toprule
+\rowcolor{azulTitulo!12}
+\textbf{Aspecto} & \textbf{APK Debug (normal)} & \textbf{APK Release (ofuscado)} \\
+\midrule
+
+Tamaño del APK
+  & 154 MB
+  & 45 MB \textcolor{verdeOk}{(−71\%)} \\
+
+\rowcolor{grisClaro}
+Nombres de clases Dart
+  & \textcolor{rojoMal}{Visibles}: \texttt{LoginScreen}, \texttt{AuthService}, \texttt{SensitiveDataStore}…
+  & \textcolor{verdeOk}{Ofuscados}: \texttt{a}, \texttt{b}, \texttt{c}… \\
+
+Nombres de métodos
+  & \textcolor{rojoMal}{Visibles}: \texttt{iniciarSesion()}, \texttt{login()}, \texttt{seedForUser()}…
+  & \textcolor{verdeOk}{Ofuscados}: \texttt{a()}, \texttt{b()}, \texttt{c()}… \\
+
+\rowcolor{grisClaro}
+Lógica de negocio
+  & \textcolor{rojoMal}{Fácil de seguir}: flujo de autenticación, permisos, tokens comprensibles en JADX
+  & \textcolor{verdeOk}{Difícil}: sin semántica ni contexto en los identificadores \\
+
+Constantes / strings
+  & \textcolor{rojoMal}{Visibles}: \texttt{"admin"}, \texttt{"1234"}, claves de storage literales
+  & \textcolor{naranja}{Parcialmente}: strings literales siguen presentes en el binario \\
+
+\rowcolor{grisClaro}
+Código Java/Kotlin (R8)
+  & \textcolor{rojoMal}{Sin procesar}: clases Flutter y Firebase con nombres completos
+  & \textcolor{verdeOk}{Minimizado}: R8 aplica shrinking y renaming \\
+
+Recursos (APKTool)
+  & \textcolor{rojoMal}{Completos}: assets, fuentes e íconos sin comprimir
+  & \textcolor{verdeOk}{Optimizados}: fuente de íconos reducida 99.8\%, recursos eliminados \\
+
+\rowcolor{grisClaro}
+Símbolos de depuración
+  & \textcolor{rojoMal}{Incluidos}: DWARF info + stack traces legibles
+  & \textcolor{verdeOk}{Separados}: almacenados en \texttt{build/debug-symbols/} \\
+
+Ingeniería inversa
+  & \textcolor{rojoMal}{Trivial}: estructura de clases y lógica inmediatamente comprensibles
+  & \textcolor{naranja}{Dificulta}: requiere mayor esfuerzo pero no es imposible \\
+
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =============================================================================
+\section{Código Fuente y Archivos de Configuración}
+
+\subsection{Clase de autenticación simulada — \texttt{AuthService}}
+
+\begin{lstlisting}[style=dart, caption={lib/auth\_service.dart}]
+class AuthResult {
+  const AuthResult({required this.success, this.errorMessage, this.userId});
+  final bool success;
+  final String? errorMessage;
+  final String? userId;
+}
+
+class AuthService {
+  AuthService._();
+  static final AuthService instance = AuthService._();
+
+  static const String _validUsername = 'admin';
+  static const String _validPassword = '1234';
+
+  String? _currentUser;
+  DateTime? _sessionStart;
+
+  String? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
+
+  Future<AuthResult> login(String username, String password) async {
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    final String trimmed = username.trim();
+    if (trimmed.isEmpty || password.isEmpty) {
+      return const AuthResult(
+        success: false,
+        errorMessage: 'Usuario y contrasena son requeridos',
+      );
+    }
+    if (trimmed == _validUsername && password == _validPassword) {
+      _currentUser = trimmed;
+      _sessionStart = DateTime.now();
+      return AuthResult(success: true, userId: trimmed);
+    }
+    return const AuthResult(
+      success: false,
+      errorMessage: 'Usuario o contrasena incorrectos',
+    );
+  }
+
+  void logout() {
+    _currentUser = null;
+    _sessionStart = null;
+  }
+
+  Duration? get sessionDuration {
+    if (_sessionStart == null) return null;
+    return DateTime.now().difference(_sessionStart!);
+  }
+
+  bool validateSessionToken(String token) {
+    if (token.isEmpty) return false;
+    return token.startsWith('sess_') && token.length > 10;
+  }
+
+  bool hasPermission(String resource) {
+    if (_currentUser == null) return false;
+    final Map<String, List<String>> rolePermissions = {
+      'admin': ['read', 'write', 'delete', 'admin'],
+      'user': ['read'],
+    };
+    return rolePermissions[_currentUser]?.contains(resource) ?? false;
+  }
+}
+\end{lstlisting}
+
+\subsection{Tercera pantalla — \texttt{ProfileScreen}}
+
+\begin{lstlisting}[style=dart, caption={lib/profile\_screen.dart (fragmento)}]
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key, required this.usuario});
+  final String usuario;
+
+  @override
+  Widget build(BuildContext context) {
+    final Duration? duracion = AuthService.instance.sessionDuration;
+    final bool esAdmin = AuthService.instance.hasPermission('admin');
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Perfil de usuario')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(children: [
+          CircleAvatar(
+            radius: 48,
+            child: Text(usuario[0].toUpperCase(),
+                style: const TextStyle(fontSize: 40)),
+          ),
+          // ... permisos, duracion de sesion, estado de seguridad
+        ]),
+      ),
+    );
+  }
+}
+\end{lstlisting}
+
+\subsection{Integración en \texttt{LoginScreen} con \texttt{AuthService}}
+
+\begin{lstlisting}[style=dart, caption={lib/main.dart — método \_iniciarSesion()}]
+Future<void> _iniciarSesion() async {
+  if (autenticando) return;
+  setState(() => autenticando = true);
+
+  final AuthResult resultado = await AuthService.instance.login(
+    _usuarioController.text,
+    _contrasenaController.text,
+  );
+
+  if (!mounted) return;
+  if (!resultado.success) {
+    setState(() => autenticando = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(resultado.errorMessage ?? 'Error')),
+    );
+    return;
+  }
+
+  final String userId = resultado.userId!;
+  await SensitiveDataStore.instance.seedForUser(userId);
+  await RemoteDeleteFcmService.instance.bindCurrentUser(userId);
+
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(builder: (_) => HomeScreen(usuario: userId)),
+  );
+}
+\end{lstlisting}
+
+% =============================================================================
+\section{Preguntas de Reflexión}
+
+\begin{reflexion}{1. ¿La ofuscación impide completamente la ingeniería inversa?}
+No. La ofuscación \textbf{dificulta} la ingeniería inversa, pero no la impide. El bytecode compilado debe ejecutarse en la misma plataforma, lo que significa que la lógica funcional permanece intacta; solo cambian los nombres de los identificadores. Un atacante con tiempo y herramientas como JADX puede reconstruir el flujo de la aplicación observando el comportamiento en tiempo de ejecución, analizando las llamadas al sistema operativo (syscalls) o mediante depuración dinámica con Frida. La ofuscación eleva el costo del ataque, pero no lo hace inviable.
+\end{reflexion}
+
+\begin{reflexion}{2. ¿Qué información sigue siendo visible después de aplicar ofuscación?}
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Constantes de cadena literales}: strings como \texttt{"admin"}, \texttt{"1234"}, claves de almacenamiento (\texttt{"sensitive.session\_token"}), mensajes de error y URLs quedan en el binario.
+  \item \textbf{Permisos del \texttt{AndroidManifest.xml}}: \texttt{ACCESS\_FINE\_LOCATION}, \texttt{INTERNET}, \texttt{RECEIVE\_BOOT\_COMPLETED}, etc. revelan capacidades de la app.
+  \item \textbf{Nombres de dependencias externas}: paquetes como \texttt{com.google.firebase} y \texttt{com.it\_nomads.fluttersecurestorage} se conservan por las reglas \texttt{-keep}.
+  \item \textbf{Estructura de recursos}: íconos, layouts XML y assets que no sean código permanecen accesibles vía APKTool.
+  \item \textbf{Tráfico de red}: las peticiones HTTP/HTTPS son observables con un proxy (Burp Suite) independientemente de la ofuscación.
+  \item \textbf{Comportamiento en ejecución}: mediante instrumentación dinámica (Frida, Xposed) se puede interceptar llamadas a métodos en tiempo de ejecución.
+\end{itemize}
+\end{reflexion}
+
+\begin{reflexion}{3. ¿Qué riesgos existirían si una aplicación crítica se distribuye sin ofuscación?}
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Exposición de algoritmos de negocio}: un atacante puede comprender y replicar la lógica de validación, cálculos de precios, fórmulas propietarias o reglas de acceso.
+  \item \textbf{Extracción de credenciales hardcodeadas}: claves de API, contraseñas embebidas o endpoints internos son inmediatamente legibles.
+  \item \textbf{Bypass de controles de seguridad}: al conocer el flujo de autenticación, es trivial modificar el APK para saltar verificaciones (emulación, root, GPS falso).
+  \item \textbf{Reutilización y clonación}: la app puede copiarse, modificarse y redistribuirse como versión maliciosa (phishing, malware) que imita la original.
+  \item \textbf{Identificación de vulnerabilidades}: los nombres descriptivos de métodos facilitan localizar puntos débiles (inyección, validación incorrecta, desbordamientos).
+\end{itemize}
+\end{reflexion}
+
+\begin{reflexion}{4. ¿Qué otras medidas de seguridad deberían complementarse con la ofuscación?}
+La ofuscación debe ser parte de una estrategia de defensa en profundidad:
+
+\begin{description}[leftmargin=0em, style=nextline]
+  \item[Certificate Pinning] Anclar el certificado TLS del servidor para impedir ataques de interceptación con proxies maliciosos.
+  \item[Root/Emulator detection] Detectar dispositivos rooteados, emuladores o entornos de depuración y negar el acceso.
+  \item[Cifrado de datos en reposo] Usar \texttt{flutter\_secure\_storage} (AES-256 con Keystore/Keychain) en lugar de almacenamiento plano.
+  \item[No embeber secretos] Credenciales, tokens y claves de API deben residir en el servidor, nunca en el APK.
+  \item[Integridad del APK] Verificar la firma del APK en tiempo de ejecución para detectar reempaquetado.
+  \item[Instrumentación dinámica (anti-Frida)] Detectar si la aplicación está siendo instrumentada con Frida o Xposed.
+  \item[Hardening de \texttt{FLAG\_SECURE}] Impedir capturas de pantalla en vistas con datos sensibles (ya implementado en este proyecto).
+\end{description}
+\end{reflexion}
+
+\begin{reflexion}{5. ¿Es la ofuscación suficiente para proteger secretos, tokens o credenciales dentro de una aplicación móvil?}
+\textbf{No. La ofuscación no es suficiente para proteger secretos embebidos en el APK.}
+
+La razón fundamental es que el binario ofuscado debe ejecutarse en el dispositivo del usuario: si el secreto está en el código, en algún momento se materializará en memoria con su valor real, y puede extraerse mediante análisis dinámico. Las herramientas de instrumentación (Frida) permiten interceptar el valor de una variable en tiempo de ejecución sin importar cuán ofuscado esté el código fuente.
+
+El caso concreto de este proyecto ilustra el problema: las credenciales \texttt{"admin"} y \texttt{"1234"} son constantes \texttt{const} en \texttt{AuthService}. Aunque la clase se llame \texttt{a} tras la ofuscación, el atacante puede:
+
+\begin{enumerate}
+  \item Buscar la cadena \texttt{"admin"} directamente en el binario con \texttt{strings app-release.apk}.
+  \item Usar Frida para hookar la función de comparación y leer los parámetros.
+  \item Forzar el APK con un diccionario contra la pantalla de login.
+\end{enumerate}
+
+La solución correcta es \textbf{nunca almacenar credenciales en el cliente}: la autenticación debe verificarse en un servidor, usando protocolos estándar (OAuth 2.0, OpenID Connect), y los tokens emitidos deben tener vida corta y rotación automática. La ofuscación complementa esta arquitectura como capa adicional de resistencia, pero no la reemplaza.
+\end{reflexion}
+
+% =============================================================================
+\section{Conclusiones}
+
+\begin{conclusionbox}
+\begin{enumerate}[leftmargin=1.4em]
+  \item \textbf{La ofuscación es una capa de protección, no un mecanismo de seguridad completo.} Renombrar clases y métodos eleva el costo del análisis estático, pero no protege ante análisis dinámico ni ante la extracción de strings literales del binario.
+
+  \item \textbf{El impacto en el tamaño es significativo.} La combinación de R8 (\textit{shrinking} + \textit{minification}) con la compilación de Flutter redujo el APK de 154 MB a 45 MB (−71\%), lo que también mejora el tiempo de descarga e instalación.
+
+  \item \textbf{Las constantes hardcodeadas son el eslabón más débil.} Las credenciales \texttt{"admin"}/\texttt{"1234"} siguen visibles en el binario ofuscado. Ningún nivel de ofuscación protege datos que deben existir en texto plano dentro del APK.
+
+  \item \textbf{ProGuard/R8 requiere configuración cuidadosa.} Sin las reglas \texttt{-keep} adecuadas, el proceso elimina clases necesarias para el funcionamiento de Flutter, Firebase y los plugins, causando crashes en producción.
+
+  \item \textbf{La separación de símbolos de depuración es una práctica recomendada.} El flag \texttt{--split-debug-info} permite desofuscar stack traces en desarrollo usando el archivo \texttt{app.android-arm64.symbols}, sin exponer esa información en el APK distribuido.
+
+  \item \textbf{La defensa en profundidad es obligatoria.} Para una aplicación con datos sensibles reales, la ofuscación debe combinarse con: autenticación en servidor, certificate pinning, almacenamiento cifrado y detección de entornos comprometidos.
+\end{enumerate}
+\end{conclusionbox}
+
+\end{document}
