@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -26,6 +28,10 @@ class SecureWindow {
 
   static Future<bool> detectFakeLocation() async {
     return await _channel.invokeMethod<bool>('detectFakeLocation') ?? false;
+  }
+
+  static Future<bool> isUsbDebuggingEnabled() async {
+    return await _channel.invokeMethod<bool>('isUsbDebuggingEnabled') ?? false;
   }
 }
 
@@ -62,8 +68,61 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      verificarFakeGPS();
+      _verificarEntornoSeguro();
     });
+  }
+
+  Future<void> _verificarEntornoSeguro() async {
+    if (!kDebugMode) {
+      bool adbActivo = false;
+      try {
+        adbActivo = await SecureWindow.isUsbDebuggingEnabled();
+      } catch (e) {
+        debugPrint('Error al verificar depuracion USB: $e');
+      }
+
+      if (adbActivo) {
+        if (!mounted) return;
+        setState(() => cargando = false);
+        _mostrarDialogoBloqueoAdb();
+        return;
+      }
+    }
+
+    await verificarFakeGPS();
+  }
+
+  void _mostrarDialogoBloqueoAdb() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            icon: const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red,
+              size: 40,
+            ),
+            title: const Text('Entorno inseguro detectado'),
+            content: const Text(
+              'Se ha detectado que la Depuracion USB (ADB) esta activa en '
+              'este dispositivo. Por politicas de seguridad, la aplicacion '
+              'no puede ejecutarse en este entorno.\n\n'
+              'Por favor, desactiva la Depuracion USB en Ajustes > Opciones '
+              'de desarrollador y vuelve a abrir la aplicacion.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => exit(0),
+                child: const Text('Cerrar aplicacion'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> verificarFakeGPS() async {

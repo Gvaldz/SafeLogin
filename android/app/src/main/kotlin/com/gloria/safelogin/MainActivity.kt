@@ -32,8 +32,17 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "detectFakeLocation" -> result.success(checkMockLocation())
+                "isUsbDebuggingEnabled" -> result.success(isUsbDebuggingEnabled())
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    private fun isUsbDebuggingEnabled(): Boolean {
+        return try {
+            Settings.Global.getInt(contentResolver, Settings.Global.ADB_ENABLED, 0) != 0
+        } catch (e: Exception) {
+            false
         }
     }
 
